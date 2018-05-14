@@ -1,0 +1,8 @@
+REFERENCE:
+"Modèles en Caractères pour la Détection de Polarité dans les Tweets"
+Davide Buscaldi, Joseph Le Roux et Gaël Lejeune
+DEFT 2018
+
+
+char_motifs.py correspond to the third run. This script only works with python2
+ use the -h option to get help

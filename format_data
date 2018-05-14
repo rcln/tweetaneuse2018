@@ -1,0 +1,15 @@
+Our scripts take as input files in a particular format:
+
+=== For the training phase :
+
+"TXXX_cat_tweets" where XXX is the number of the task,  associates an ID to a class, separated by a pipe ("|")
+    ->ID|CLASS
+
+"id_tweets" associates an ID to a text, both surrounded by "", separated by a tab ("\t")
+    ->"ID"	"TEXT"
+
+=== For the test phase :
+
+"TXXX_test" where XXX is the number of the task associates an ID to a text, both surrounded by "", separated by a tab ("\t")
+    ->"ID"	"TEXT"
+
