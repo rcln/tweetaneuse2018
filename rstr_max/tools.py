@@ -5,26 +5,28 @@ import os
 def get_args():
   from optparse import OptionParser
   parser = OptionParser()
-  # Options specific to classif
-  parser.add_option("-c", "--corpus", dest="corpus",
-                  help="corpus folder", metavar="CORPUS")
+  parser.add_option("-d", "--data", dest="data",
+                  help="data foldern default 'dummy_data'", metavar="DATA")
+
   parser.add_option("-t", "--task", dest="task", default = "1",
                   help="Task number, default 1", metavar="TASK")
+
   parser.add_option("-T", "--test", dest="test", 
                   default=False, action="store_true",      
                   help = "Apply model on test set")
   parser.add_option("-v", "--verbose",
                    action="store_true", dest="verbose", default=False,
-                   help="don't print status messages to stdout")
+                   help="print status messages to stdout")
+
   parser.add_option("-n", "--ngrams",
                    action="store_true", dest="ngrams", default=False,
-                   help="ngrams (not motifs)")
+                   help="ngrams instead of closed motifs")
   parser.add_option("-l", "--len",
                    dest="len", default="1,3",
-                   help="minlen,maxlen")
+                   help="min length, max length (motifs or n-grams)")
   parser.add_option("-s", "--sup",
                    dest="sup", default="2,100000",
-                   help="minsup,maxsup")
+                   help="min support, max support")
   (options, args) = parser.parse_args()
   return options
 

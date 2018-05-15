@@ -5,7 +5,7 @@ import os
 import json
 
 sys.path.append("rstr_max/")
-from text import *
+from extracteur_motifs import *
 from tools import *
 
 from sklearn import svm
@@ -18,30 +18,27 @@ from scipy import sparse
 class process_data():
   def __init__(self, config, out_name):
     self.textsList = self.getTextsList()
-    NbTrain = len(self.textsList["texts"])
+    self.NbTrain = len(self.textsList["texts"])
 
     if o.test==True:
       self.testData = self.getTextsList(o.test)
       for etiq, liste in self.testData.iteritems():
         self.textsList[etiq] += liste
-      NbTotal = len(self.textsList["texts"])
+      self.NbTotal = len(self.textsList["texts"])
 
     self.motifsOccurences = get_motifs(self.textsList["texts"], config)
     self.getVecteursTraits()
     self.getClassesTextes()
 
     if o.verbose==True:
-      print "\n  Train set size :\t %s"%str(NbTrain)
-      if o.test==True:
-        print "  Test set size :\t %s"%str(NbTotal-NbTrain)
-      print "  NB motifs :\t\t %s"%str(self.NBmotifs)
+      self.print_status()
 
     for name, clf in self.get_classifiers():
       predictions_clf = []
       print "\n","-"*10, name
       if o.test ==True:
-        INDICES = [[[x for x in range(0, NbTrain)],
-                    [x for x in range(NbTrain, NbTotal)]]]
+        INDICES = [[[x for x in range(0, self.NbTrain)],
+                    [x for x in range(self.NbTrain, self.NbTotal)]]]
       else:
         kf_total = StratifiedKFold(n_splits = 10)
         INDICES = kf_total.split(self.X,self.Y)
@@ -63,6 +60,15 @@ class process_data():
     self.testX = sparse.csr_matrix([self.X[i] for i in test_indices])
     self.testY = [self.Y[i] for i in test_indices]
 
+  def print_status(self):
+      print "\n  Train set size :\t %s"%str(self.NbTrain)
+      print "    Classes :",self.stats
+      if o.test==False:
+        print "\nTraining data : %s"%self.train_path
+      else:
+        print "  Test set size :\t %s"%str(self.NbTotal-self.NbTrain)
+        print "\nTest data : %s"%self.path_ids
+
   def get_classifiers(self):
     liste_classif=[
      ["OneVsRest-Linear", OneVsRestClassifier(LinearSVC(random_state=0))],
@@ -71,6 +77,7 @@ class process_data():
 #     ["svm-C-1-rbf", svm.SVC(kernel='rbf')],
      ]
     return liste_classif
+
   def get_texts_cls(self, lines):
       stats = {}
       cls_list = []
@@ -91,18 +98,15 @@ class process_data():
  
   def getTextsList(self, test=False):
     if test==False:
-      path = "%s/id_tweets"%o.corpus
+      self.path_ids = "%s/id_tweets"%o.data
     else:
-      path = "%s/T1_test"%o.corpus
-      print "\nTest data : %s"%path
-    lines = open_utf8(path, True)
+      self.path_ids = "%s/T%s_test"%(o.data, o.task)
+    lines = open_utf8(self.path_ids, True)
     txts_list, IDs_list = self.get_texts_ids(lines)
     if test==False:
-      train_path = "%s/T%s_cat_tweets"%(o.corpus, o.task)
-      print "Training data : %s"%train_path
-      lines = open_utf8(train_path, True)
-      stats, cls_list = self.get_texts_cls(lines)
-      print "  Classes :",stats
+      self.train_path = "%s/T%s_cat_tweets"%(o.data, o.task)
+      lines = open_utf8(self.train_path, True)
+      self.stats, cls_list = self.get_texts_cls(lines)
     else:
       cls_list =[" "]*len(lines)
     return {"texts":txts_list,"classes": cls_list,"IDs":IDs_list}
@@ -154,10 +158,10 @@ def  get_config_name(config):
 if __name__ == "__main__":
   o = get_args()
   print o
-  if o.corpus==None:
-    print "\nUSE -c option to specify data location\n"
-    o.corpus = "dummy_data"
-  path_results = "results_char_motifs/%s/"%o.corpus
+  if o.data==None:
+    print "\nUSE -d option to specify data location\n"
+    o.data = "dummy_data"
+  path_results = "results_char_motifs/%s/"%o.data
   mkdirs(path_results)
 
   config = get_config(o)
