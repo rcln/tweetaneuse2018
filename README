@@ -3,6 +3,9 @@ REFERENCE:
 Davide Buscaldi, Joseph Le Roux et Gaël Lejeune
 DEFT 2018
 
+scorer.py:	compute results
+		Input: gold standard file, path_results
 
-char_motifs.py correspond to the third run. This script only works with python2
- use the -h option to get help
+char_motifs.py: third run
+		works with python2
+ 		use the -h option to get help

@@ -16,56 +16,51 @@ from sklearn.model_selection import StratifiedKFold
 from scipy import sparse
 
 class process_data():
-  def __init__(self, options, config, out_name):
-    self.textsList = self.getTextsList(o.corpus, o.task)
+  def __init__(self, config, out_name):
+    self.textsList = self.getTextsList()
     NbTrain = len(self.textsList["texts"])
-    if options.test==True:
-      self.testData = self.getTextsList(o.corpus,o.task, o.test)
+
+    if o.test==True:
+      self.testData = self.getTextsList(o.test)
       for etiq, liste in self.testData.iteritems():
         self.textsList[etiq] += liste
+      NbTotal = len(self.textsList["texts"])
+
     self.motifsOccurences = get_motifs(self.textsList["texts"], config)
-    self.X, self.traits = self.getVecteursTraits()
-    self.NBmotifs = len(self.traits)
+    self.getVecteursTraits()
+    self.getClassesTextes()
 
-    self.Y, self.dic_classes = self.getClassesTextes()
-    self.class_names = {y:x for x,y in self.dic_classes.iteritems()}
-    classifiers = self.get_classifiers()
-
-    if options.verbose==True:
+    if o.verbose==True:
       print "\n  Train set size :\t %s"%str(NbTrain)
       if o.test==True:
-        print "  Test set size :\t %s"%str(len(self.textsList["texts"])-NbTrain)
+        print "  Test set size :\t %s"%str(NbTotal-NbTrain)
       print "  NB motifs :\t\t %s"%str(self.NBmotifs)
-      print "  Classifiers :\t\t %s\n"%", ".join([x[0] for x in classifiers])
 
-    for name, clf in classifiers:
-      self.all_predictions = []
-      all_predictions_clf = []
-      print "-"*10, name
-      if options.test ==False:
+    for name, clf in self.get_classifiers():
+      predictions_clf = []
+      print "\n","-"*10, name
+      if o.test ==True:
+        INDICES = [[[x for x in range(0, NbTrain)],
+                    [x for x in range(NbTrain, NbTotal)]]]
+      else:
         kf_total = StratifiedKFold(n_splits = 10)
         INDICES = kf_total.split(self.X,self.Y)
-      else:
-        INDICES = [[[x for x in xrange(0, NbTrain)], [x for x in xrange(NbTrain, len(self.textsList["texts"]))]]]
       for train_indices, test_indices in INDICES:
         self.create_sets(train_indices, test_indices)
-        clf.fit(sparse.csr_matrix(self.trainX), self.trainY)
-        self.predictions = clf.predict(sparse.csr_matrix(self.testX))
-        all_predictions_clf += self.translate_predictions(test_indices)
-      self.all_predictions.append([name, all_predictions_clf])
-      generate_output(out_name, self.all_predictions, "|")
+        clf.fit(self.trainX, self.trainY)
+        self.predictions = clf.predict(self.testX)
+        predictions_clf += self.translate_predictions(test_indices)
+      generate_output(out_name, [[name, predictions_clf]], "|")
 
   def translate_predictions(self, test_indices):
-        cl_pred=[self.class_names[x] for x in self.predictions]
+        cl_pred = [self.class_names[x] for x in self.predictions]
         tw_ids = [self.textsList["IDs"][i] for i in test_indices ]
-        paires = [[tw_ids[i], cl_pred[i]] for i in range(0, len(cl_pred))]
-	return paires
+        return [[tw_ids[i], cl_pred[i]] for i in range(0, len(cl_pred))]
     
-
   def create_sets(self, train_indices, test_indices):
-    self.trainX = [self.X[i] for i in train_indices]
+    self.trainX = sparse.csr_matrix([self.X[i] for i in train_indices])
     self.trainY = [self.Y[i] for i in train_indices]
-    self.testX = [self.X[i] for i in test_indices]
+    self.testX = sparse.csr_matrix([self.X[i] for i in test_indices])
     self.testY = [self.Y[i] for i in test_indices]
 
   def get_classifiers(self):
@@ -76,42 +71,46 @@ class process_data():
 #     ["svm-C-1-rbf", svm.SVC(kernel='rbf')],
      ]
     return liste_classif
-
-  def getTextsList(self, folder, task, test=False):
-    texts_ids = {}
-    txts_list, cls_list, IDs_list = [], [], []
-    if test==False:
-      lignes = open_utf8("%s/id_tweets"%folder, True)
-    else:
-      test_path = "%s/T1_test"%folder
-      print "\nTest data : %s"%test_path
-      lignes = open_utf8(test_path, True)
-      cls_list =[" "]*len(lignes)
-    for lig in lignes:
-      ID, tweet = re.split('"\t"', re.sub('^"|"$', '',lig))
-      texts_ids[ID] = tweet
-      if test==True:
-        txts_list.append(tweet)
-        IDs_list.append(ID)
-    if test==False:
-      train_path = "%s/T%s_cat_tweets"%(folder, task)
-      print "Training data : %s"%train_path
-      lignes = open_utf8(train_path, True)
+  def get_texts_cls(self, lines):
       stats = {}
-      for lig in lignes:
+      cls_list = []
+      for lig in lines:
         ID, classe = re.split('\|', lig)
         stats.setdefault(classe, 0)
         stats[classe]+=1
-        txts_list.append(texts_ids[ID])
-        IDs_list.append(ID)
         cls_list.append(classe)
-      print stats
+      return stats, cls_list
+
+  def get_texts_ids(self, lines):
+    txts_list, IDs_list = [], []
+    for lig in lines:
+      ID, tweet = re.split('"\t"', re.sub('^"|"$', '',lig))
+      txts_list.append(tweet)
+      IDs_list.append(ID)
+    return  txts_list, IDs_list
+ 
+  def getTextsList(self, test=False):
+    if test==False:
+      path = "%s/id_tweets"%o.corpus
+    else:
+      path = "%s/T1_test"%o.corpus
+      print "\nTest data : %s"%path
+    lines = open_utf8(path, True)
+    txts_list, IDs_list = self.get_texts_ids(lines)
+    if test==False:
+      train_path = "%s/T%s_cat_tweets"%(o.corpus, o.task)
+      print "Training data : %s"%train_path
+      lines = open_utf8(train_path, True)
+      stats, cls_list = self.get_texts_cls(lines)
+      print "  Classes :",stats
+    else:
+      cls_list =[" "]*len(lines)
     return {"texts":txts_list,"classes": cls_list,"IDs":IDs_list}
 
   def getVecteursTraits(self):
     dico = self.motifsOccurences
-    listeVecteurs = []
-    traits = [dico[i][0] for i in xrange(0, len(dico))]
+    self.X = []
+    self.traits = [dico[i][0] for i in xrange(0, len(dico))]
     for numTexte in range(len(self.textsList["texts"])):
       vecteurTexte = []
       for motif in range(len(dico)):
@@ -119,22 +118,19 @@ class process_data():
               vecteurTexte.append(dico[motif][1][numTexte])
           else:
               vecteurTexte.append(0)
-      listeVecteurs.append(vecteurTexte)
-    return listeVecteurs, traits
+      self.X.append(vecteurTexte)
+    self.NBmotifs = len(self.traits)
 
   def getClassesTextes(self):
-      listeClasses = []
+      self.Y = []
       dic_classes = {}
       cpt = 0
       for classe in self.textsList["classes"]:
           if classe not in dic_classes:
             dic_classes[classe] = cpt
             cpt+=1
-          listeClasses.append(dic_classes[classe])
-      return listeClasses, dic_classes
-
-  def predict(self):
-      return self.clf.predict([vecteurX])
+          self.Y.append(dic_classes[classe])
+      self.class_names = {y:x for x,y in dic_classes.iteritems()}
 
 def get_config(options):
   ml, Ml = [int(x) for x in re.split(",", options.len)]
@@ -161,9 +157,11 @@ if __name__ == "__main__":
   if o.corpus==None:
     print "\nUSE -c option to specify data location\n"
     o.corpus = "dummy_data"
-  path_results = "results_char_motifs/"
+  path_results = "results_char_motifs/%s/"%o.corpus
   mkdirs(path_results)
+
   config = get_config(o)
   config_name = get_config_name(config)
   out_name = "%s/T%s_%s"%(path_results, o.task,  config_name)
-  process_data(o, config, out_name)
+
+  process_data(config, out_name)
