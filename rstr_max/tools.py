@@ -71,6 +71,12 @@ def mkdirs(path):
   except:
     pass
 
+def format_name(path_data):
+  name = re.sub("/","__", path_data) 
+  name = re.sub("\.","", name) 
+  name = re.sub("_{3,}","__", name) 
+  return name
+
 def read_tweets(path):
   lignes = open_utf8(path, True)
   d = {}

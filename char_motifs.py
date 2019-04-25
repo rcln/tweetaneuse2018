@@ -5,7 +5,6 @@ import os
 import json
 import glob
 
-sys.path.append("tweetaneuse2018/rstr_max/")
 sys.path.append("rstr_max/")
 from extracteur_motifs import *
 from tools import *
@@ -161,7 +160,7 @@ if __name__ == "__main__":
   if o.data==None:
     print "\nUSE -d option to specify data location\n"
     o.data = "dummy_data"
-  path_results = "results_char_motifs/%s/"%o.data
+  path_results = "results_char_motifs/%s/"%format_name(o.data)
   mkdirs(path_results)
 
   config = get_config(o)

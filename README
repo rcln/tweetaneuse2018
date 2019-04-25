@@ -1,6 +1,7 @@
 REFERENCE:
 "Modèles en Caractères pour la Détection de Polarité dans les Tweets"
 Davide Buscaldi, Joseph Le Roux et Gaël Lejeune
+
 DEFT 2018
 
 scorer.py:	compute results

@@ -106,7 +106,7 @@ ref = parse_file(sys.argv[1])
 
 dic_pyplot = {}
 D={}
-has_date = True
+has_date = False#for adapting to regression cases
 verbose = False
 
 for result_file in liste_results:
