@@ -18,6 +18,13 @@ def get_args():
                    action="store_true", dest="verbose", default=False,
                    help="print status messages to stdout")
 
+  parser.add_option("-f", "--force",
+                   action="store_true", dest="force", default=False,
+                   help="force remake experiment")
+
+  parser.add_option("-w", "--words",
+                   action="store_true", dest="words", default=False,
+                   help="words instead of characters")
   parser.add_option("-n", "--ngrams",
                    action="store_true", dest="ngrams", default=False,
                    help="ngrams instead of closed motifs")

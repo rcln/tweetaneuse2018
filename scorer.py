@@ -4,6 +4,10 @@ sys.path.append("rstr_max")
 from tools import * 
 import glob
 import re
+import numpy as np
+import matplotlib.pyplot as plt 
+import math
+import json
 
 def parse_file(path):
   lignes = open_utf8(path, True)
@@ -22,12 +26,15 @@ def init_data_struct(classes_names):
       d_classes[name][s] = 0
   return d_classes
 
-def compute_results(dic):
+def compute_results(dic, has_date, verbose):
   all_F = []
   acc_data = [0, 0]
   out =""
-  print "  CLASSE\tPrecision\tRecall\tF-measure\tTP\tFP\tFN"
-  for classe, scores in dic .iteritems():
+  if verbose == True:
+    print "  CLASSE\tPrecision\tRecall\tF-measure\tTP\tFP\tFN"
+  l_classes = sorted(dic.keys())
+  for classe in l_classes:
+    scores = dic[classe]
     TP = float(scores["TP"])
     FP = scores["FP"]
     FN = scores["FN"]
@@ -40,42 +47,125 @@ def compute_results(dic):
     acc_data[0]+=TP
     acc_data[1]+=FP+TP
     all_F.append(F1)
-    print "  '%s'"%classe[:10]+"\t"+"\t".join([str(round(x,4)) for x in [P,R, F1]])+"\t",
-    print "\t".join([str(scores[x]) for x in ["TP", "FP",  "FN"]])
+    if verbose==True:
+      print "  '%s'"%classe[:10]+"\t"+"\t".join([str(round(x,4)) for x in [P,R, F1]])+"\t",
+      print "\t".join([str(scores[x]) for x in ["TP", "FP",  "FN"]])
   if acc_data[0]>0:
     accuracy = round(acc_data[0]/acc_data[1], 4)
   else:
     accuracy = 0
-  print "  Accuracy:", accuracy, 
-  print "  Macro F1:", round(moyenne(all_F), 4)
+  dic = {"Accuracy": accuracy, "Macro-F1": round(moyenne(all_F), 4)}
+#  dic = {"Macro-F1": round(moyenne(all_F), 4)}
+#  dic = {"Accuracy": accuracy}
+  if verbose==True:
+    print "  Accuracy:", accuracy, 
+    print "  Macro F1:", round(moyenne(all_F), 4)
+  return dic
 #  print out
 
-def get_scores(ref, pred):
+def get_scores(ref, pred, has_date, verbose):
   classes_names = set(ref.values())
   d_classes = init_data_struct(classes_names)
   missing = []
+  eval_dates = {"dist":0, "dist_pond":0, "sim_gauss":0}
   for ID, classe in ref.iteritems():
     if ID not in pred:
       missing.append(ID)
       continue
     if classe==pred[ID]:
       d_classes[classe]["TP"]+=1
+      eval_dates["sim_gauss"]+=1/float(len(pred))
     else:
       d_classes[classe]["FN"]+=1
       d_classes[pred[ID]]["FP"]+=1
-  compute_results(d_classes) 
+      if has_date==True:
+        ecart_abs = float(int(classe)-int(pred[ID]))
+        if ecart_abs<0:ecart_abs = -ecart_abs
+        eval_dates["dist"]+=ecart_abs/len(pred)
+        eval_dates["dist_pond"]+=ecart_abs*ecart_abs/len(pred)
+        sim_gauss = (2.72818**(-(3.1415/10)*ecart_abs*ecart_abs))
+#        print(sim_gauss, classe, pred[ID])
+#        DDD = raw_input("next?")
+        eval_dates["sim_gauss"]+=sim_gauss/len(pred)
+  scores = compute_results(d_classes, has_date,verbose)
+  if has_date:
+    print(eval_dates)
+    scores["sim_gauss"] = round(eval_dates["sim_gauss"], 4)
   if missing>0:
     print "Missing : %s"%str(len(missing))
+  return scores, eval_dates
 
 print "Usage : ARG1=GOLD_FILE ARG2= PATH_RESULTS"
 if len(sys.argv)!=3:
+  print("ARGS", sys.argv)
   exit()
 
+#liste_results = glob.glob(sys.argv[2]+"*/*/*/*")
 liste_results = glob.glob(sys.argv[2]+"*")
-
 ref = parse_file(sys.argv[1])
 
+dic_pyplot = {}
+D={}
+has_date = True
+verbose = False
+
 for result_file in liste_results:
-  print " Processing %s"%result_file
+  print "\n Processing %s"%result_file[-80:]
   pred = parse_file(result_file)
-  scores = get_scores(ref, pred)
+  scores, scores_date = get_scores(ref, pred, has_date, verbose)
+  if verbose==False:
+    print(scores)
+  maxlen = re.findall("maxlen-([0-9])", result_file)[0]
+  minlen = re.findall("minlen-([0-9])", result_file)[0]
+#  if "modern" in result_file:lg ="Moderne"
+#  else:lg="Diplomatique"
+#  if "NoMarkup" in result_file:mk = "Brut"
+#  else: mk = "Clean"
+#  if "grams-T" in result_file:tok = "Motifs"
+#  else: tok = "N-grammes"
+#  if "words-T" in result_file:typ="mots"
+#  else: typ="caracteres"
+#  D.setdefault(lg, {})
+#  tup = tuple([lg, mk, tok, typ])
+#  legende = "__".join([x.encode("utf-8") for x in tup])
+  if int(minlen)>1:continue
+#  D[lg].setdefault(legende,[{},{},{},{},{},{},{}])
+#  D[lg][legende][int(maxlen)-1] = scores
+  parametres = re.findall("([a-z]*)-([A-Z][a-z]*|[0-9][0-9]*)", result_file)
+  print(scores)
+  print(parametres)
+  parametres = {x:y for x, y in parametres}
+  if "words" not in parametres:
+    parametres["words"]="False"
+  name_config = ""
+  par_config = ["ngrams", "words"]
+  for par in par_config:
+    name_config+= "_"+par+"-"+parametres[par]
+  etiq_scores = sorted(scores.keys())
+  dic_pyplot.setdefault(name_config, [])
+  dic_pyplot[name_config].append([parametres[x] for x in ["minlen","maxlen","minsup","maxsup"]]+list([scores[x] for x in etiq_scores]))
+
+dic_pyplot = {x:sorted(y) for x,y in dic_pyplot.iteritems()}
+dic_name = "pyplot.json"
+w = open(dic_name, "w")
+w.write(json.dumps(dic_pyplot, indent = 2))
+w.close()
+print("Output written in %s"%dic_name)
+
+for lg, Dic in D.iteritems():
+  legendes = []
+  print Dic.keys()
+  for tup, scores in Dic.iteritems():
+    nom = "_".join(list(tup))
+    y = []
+    print scores
+    for dic in scores:
+      if len(dic)=={}:continue
+      for a,b in dic.iteritems():
+        y.append(b)
+    X = range(1, len(y)+1)
+    plt.plot(X,y)
+    legendes.append(tup)
+  plt.legend(legendes)
+  plt.savefig("%s.png"%lg) 
+  plt.show() 

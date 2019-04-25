@@ -1,13 +1,28 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+import sys
+sys.path.append("rstr_max/")
 from rstr_max.rstr_max import *
+import pickle
+import os
+import re
+
+def is_word(ss, options):
+  mots = [x for x in re.split("_", ss) if x!=""]
+  if len(mots)>=options['minlen']:
+    if len(mots)<=options['maxlen']:
+      return True
+  return False
 
 def exploit_rstr(r, rstr, dic_occur, options):
     l_str = []
     cpt_ss = 0
     for (offset_end, nb), (l, start_plage) in r.iteritems():
         ss = rstr.global_suffix[offset_end-l:offset_end]
-        if len(ss)<options['minlen'] or len(ss)>options['maxlen']:
+        if options["words"]==True:
+          if is_word(ss, options)==False:
+            continue
+        elif len(ss)<options['minlen'] or len(ss)>options['maxlen']:
             continue
         cpt_ss+=1
         set_occur = set()
@@ -27,9 +42,12 @@ def get_n_grams(textes, options):
   dic ={}
   cpt_texte = 0
   for t in textes:
+    if options["words"]==True:
+      t = re.split(" |,|;|:|\.|\(|\)|<|>", t)
+      t = [x for x in t if x!=""]
     for i in range(0, len(t)):
       for j in range(options["minlen"], options["maxlen"]+1):
-        car = t[i:i+j]
+        car = tuple(t[i:i+j])
         dic.setdefault(car, {})
         dic[car].setdefault(cpt_texte, 0)
         dic[car][cpt_texte]+=1
@@ -48,9 +66,17 @@ def get_motifs(lignes_texte,options = { 'minsup':1,
       return l_motifs
     rstr = Rstr_max()
     for ligne in lignes_texte:
-        rstr.add_str(ligne)
+      if options["words"]==True:
+        ligne = re.sub(" |,|;|:|\.|\(|\)|<|>|\n", "_", ligne)
+      rstr.add_str(ligne)
     dic_occur= {x:{} for x in xrange(0,len(lignes_texte))}
-    r=rstr.go()
+    r = rstr.go()
     l_motifs = exploit_rstr(r, rstr, dic_occur, options)
     return l_motifs
 
+if __name__=="__main__":
+  fic = sys.argv[1]
+  f = open(fic)
+  lignes = f.readlines()
+  f.close()
+  get_motifs(lignes)

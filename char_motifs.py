@@ -3,7 +3,9 @@
 import sys
 import os
 import json
+import glob
 
+sys.path.append("tweetaneuse2018/rstr_max/")
 sys.path.append("rstr_max/")
 from extracteur_motifs import *
 from tools import *
@@ -19,7 +21,7 @@ class process_data():
   def __init__(self, config, out_name):
     self.textsList = self.getTextsList()
     self.NbTrain = len(self.textsList["texts"])
-
+    print(self.NbTrain, "examples")
     if o.test==True:
       self.testData = self.getTextsList(o.test)
       for etiq, liste in self.testData.iteritems():
@@ -78,35 +80,32 @@ class process_data():
      ]
     return liste_classif
 
-  def get_texts_cls(self, lines):
+  def get_texts_cls(self):
       stats = {}
       cls_list = []
-      for lig in lines:
-        ID, classe = re.split('\|', lig)
+      for fic in glob.glob(o.data+"/*/*"):
+        elems = re.split("/", fic)
+        ID = elems[len(elems)-1]
+        classe = elems[len(elems)-2]
         stats.setdefault(classe, 0)
         stats[classe]+=1
         cls_list.append(classe)
       return stats, cls_list
 
-  def get_texts_ids(self, lines):
+  def get_texts_ids(self):
     txts_list, IDs_list = [], []
-    for lig in lines:
-      ID, tweet = re.split('"\t"', re.sub('^"|"$', '',lig))
-      txts_list.append(tweet)
+    for fic in glob.glob(o.data+"/*/*"):
+      elems = re.split("/", fic)
+      ID = elems[len(elems)-1]
+      txt = open_utf8(fic)
+      txts_list.append(txt)
       IDs_list.append(ID)
     return  txts_list, IDs_list
  
   def getTextsList(self, test=False):
+    txts_list, IDs_list = self.get_texts_ids()
     if test==False:
-      self.path_ids = "%s/id_tweets"%o.data
-    else:
-      self.path_ids = "%s/T%s_test"%(o.data, o.task)
-    lines = open_utf8(self.path_ids, True)
-    txts_list, IDs_list = self.get_texts_ids(lines)
-    if test==False:
-      self.train_path = "%s/T%s_cat_tweets"%(o.data, o.task)
-      lines = open_utf8(self.train_path, True)
-      self.stats, cls_list = self.get_texts_cls(lines)
+      self.stats, cls_list = self.get_texts_cls()
     else:
       cls_list =[" "]*len(lines)
     return {"texts":txts_list,"classes": cls_list,"IDs":IDs_list}
@@ -139,13 +138,14 @@ class process_data():
 def get_config(options):
   ml, Ml = [int(x) for x in re.split(",", options.len)]
   ms, Ms = [int(x) for x in re.split(",", options.sup)]
-  config = {"minsup":ms, "maxsup":Ms, "minlen":ml, "maxlen":Ml, "ngrams":options.ngrams, "test":options.test}
+  config = {"minsup":ms, "maxsup":Ms, "minlen":ml, "maxlen":Ml, "ngrams":options.ngrams, "test":options.test, "words":options.words}
   return config
 
 def generate_output(out_name, predictions, sep = "\t"):
   for clf_name, pred in predictions:
     pred = [sep.join(x) for x in pred]
-    write_utf8("%s__%s"%(out_name, clf_name), "\n".join(pred)) 
+    write_utf8("%s"%(out_name), "\n".join(pred)) 
+#    write_utf8("%s__%s"%(out_name, clf_name), "\n".join(pred)) 
 
 def  get_config_name(config):
   L = []
@@ -167,5 +167,10 @@ if __name__ == "__main__":
   config = get_config(o)
   config_name = get_config_name(config)
   out_name = "%s/T%s_%s"%(path_results, o.task,  config_name)
-
-  process_data(config, out_name)
+  if os.path.exists(out_name) and o.force==False:
+    print "-"*10
+    print "Already done"
+    print "-"*10
+  else:
+    print out_name
+    process_data(config, out_name)
