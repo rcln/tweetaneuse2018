@@ -34,9 +34,9 @@ class process_data():
     if o.verbose==True:
       self.print_status()
 
-    for name, clf in self.get_classifiers():
+    for classif_name, clf in self.get_classifiers():
       predictions_clf = []
-      print "\n","-"*10, name
+      print "\n","-"*10, classif_name
       if o.test ==True:
         INDICES = [[[x for x in range(0, self.NbTrain)],
                     [x for x in range(self.NbTrain, self.NbTotal)]]]
@@ -48,7 +48,7 @@ class process_data():
         clf.fit(self.trainX, self.trainY)
         self.predictions = clf.predict(self.testX)
         predictions_clf += self.translate_predictions(test_indices)
-      generate_output(out_name, [[name, predictions_clf]], "|")
+      generate_output(out_name+classif_name,[[classif_name, predictions_clf]], "|")
 
   def translate_predictions(self, test_indices):
         cl_pred = [self.class_names[x] for x in self.predictions]
@@ -73,9 +73,9 @@ class process_data():
   def get_classifiers(self):
     liste_classif=[
      ["OneVsRest-Linear", OneVsRestClassifier(LinearSVC(random_state=0))],
-#     ["Svm-C1-linear", svm.SVC(kernel='linear')],
-#     ["svm-C-1-poly", svm.SVC(kernel='poly')],
-#     ["svm-C-1-rbf", svm.SVC(kernel='rbf')],
+     ["Svm-C1-linear", svm.SVC(kernel='linear')],
+     ["svm-C-1-poly", svm.SVC(kernel='poly')],
+     ["svm-C-1-rbf", svm.SVC(kernel='rbf')],
      ]
     return liste_classif
 
