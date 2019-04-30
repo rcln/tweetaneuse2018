@@ -1,4 +1,4 @@
-REFERENCE:
+<h2>REFERENCE</h2>
 "Modèles en Caractères pour la Détection de Polarité dans les Tweets"
 Davide Buscaldi, Joseph Le Roux et Gaël Lejeune
 
