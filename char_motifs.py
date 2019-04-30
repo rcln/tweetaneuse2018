@@ -28,6 +28,7 @@ class process_data():
       self.NbTotal = len(self.textsList["texts"])
 
     self.motifsOccurences = get_motifs(self.textsList["texts"], config)
+    print("NB motifs : %i"%len(self.motifsOccurences))
     self.getVecteursTraits()
     self.getClassesTextes()
 
@@ -73,9 +74,9 @@ class process_data():
   def get_classifiers(self):
     liste_classif=[
      ["OneVsRest-Linear", OneVsRestClassifier(LinearSVC(random_state=0))],
-     ["Svm-C1-linear", svm.SVC(kernel='linear')],
-     ["svm-C-1-poly", svm.SVC(kernel='poly')],
-     ["svm-C-1-rbf", svm.SVC(kernel='rbf')],
+     ["Svm-C1-linear", svm.SVC(kernel='linear')],#OK but worse tha OVR
+#     ["svm-C-1-poly", svm.SVC(kernel='poly')],#Bad
+#     ["svm-C-1-rbf", svm.SVC(kernel='rbf')],#Slow
      ]
     return liste_classif
 
