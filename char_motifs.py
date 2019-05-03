@@ -20,15 +20,13 @@ class process_data():
   def __init__(self, config, out_name):
     self.textsList = self.getTextsList()
     self.NbTrain = len(self.textsList["texts"])
-    print(self.NbTrain, "examples")
-    if o.test==True:
-      self.testData = self.getTextsList(o.test)
+    if o.test!="":
+      self.testData = self.getTextsList(True)
       for etiq, liste in self.testData.iteritems():
         self.textsList[etiq] += liste
       self.NbTotal = len(self.textsList["texts"])
 
     self.motifsOccurences = get_motifs(self.textsList["texts"], config)
-    print("NB motifs : %i"%len(self.motifsOccurences))
     self.getVecteursTraits()
     self.getClassesTextes()
 
@@ -38,7 +36,7 @@ class process_data():
     for classif_name, clf in self.get_classifiers():
       predictions_clf = []
       print "\n","-"*10, classif_name
-      if o.test ==True:
+      if o.test !="":
         INDICES = [[[x for x in range(0, self.NbTrain)],
                     [x for x in range(self.NbTrain, self.NbTotal)]]]
       else:
@@ -65,11 +63,12 @@ class process_data():
   def print_status(self):
       print "\n  Train set size :\t %s"%str(self.NbTrain)
       print "    Classes :",self.stats
-      if o.test==False:
+      print("NB motifs : %i"%len(self.motifsOccurences))
+      if o.test=="":
         print "\nTraining data : %s"%self.train_path
       else:
         print "  Test set size :\t %s"%str(self.NbTotal-self.NbTrain)
-        print "\nTest data : %s"%self.path_ids
+        print "\nTest data : %s"%o.test
 
   def get_classifiers(self):
     liste_classif=[
@@ -107,7 +106,7 @@ class process_data():
     if test==False:
       self.stats, cls_list = self.get_texts_cls()
     else:
-      cls_list =[" "]*len(lines)
+      cls_list =[" "]*len(txts_list)
     return {"texts":txts_list,"classes": cls_list,"IDs":IDs_list}
 
   def getVecteursTraits(self):
@@ -149,9 +148,13 @@ def generate_output(out_name, predictions, sep = "\t"):
 
 def  get_config_name(config):
   L = []
+  if config["test"]=="":
+    del config["test"]
+  else:
+    config["test"] = format_name(config["test"])
   config = sorted([[x, y] for x,y in config.iteritems()])
   for x, y in config:
-    L.append("%s-%s"%(str(x), str(y))) 
+    L.append("%s-%s"%(str(x), str(y)))
   config_name = "_".join(L)
   return config_name
 
@@ -161,16 +164,20 @@ if __name__ == "__main__":
   if o.data==None:
     print "\nUSE -d option to specify data location\n"
     o.data = "dummy_data"
-  path_results = "results_char_motifs/%s/"%format_name(o.data)
-  mkdirs(path_results)
 
   config = get_config(o)
   config_name = get_config_name(config)
-  out_name = "%s/T%s_%s"%(path_results, o.task,  config_name)
+  if o.test=="":
+    path_results = "results_char_motifs/%s/"%format_name(o.data)
+    mkdirs(path_results)
+    out_name = "%s/T%s_%s"%(path_results, o.task,  config_name)
+  else:
+    path_results = "results_char_motifs/%s/"%format_name(o.test)
+    mkdirs(path_results)
+    out_name = "%s/T%s_%s"%(path_results, o.task,  config_name)
   if os.path.exists(out_name) and o.force==False:
     print "-"*10
     print "Already done"
     print "-"*10
   else:
-    print out_name
     process_data(config, out_name)

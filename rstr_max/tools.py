@@ -6,13 +6,14 @@ def get_args():
   from optparse import OptionParser
   parser = OptionParser()
   parser.add_option("-d", "--data", dest="data",
-                  help="data foldern default 'dummy_data'", metavar="DATA")
+                  default="dummy_data",
+                  help="data folder, default: 'dummy_data'", metavar="DATA")
 
   parser.add_option("-t", "--task", dest="task", default = "1",
                   help="Task number, default 1", metavar="TASK")
 
   parser.add_option("-T", "--test", dest="test", 
-                  default=False, action="store_true",      
+                  default="",      
                   help = "Apply model on test set")
   parser.add_option("-v", "--verbose",
                    action="store_true", dest="verbose", default=False,
