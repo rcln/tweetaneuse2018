@@ -74,9 +74,9 @@ class process_data():
   def get_classifiers(self):
     liste_classif=[
      ["Multinomial_NB",MultinomialNB()],
-     ["Gaussian_NB", GaussianNB()],
+#     ["Gaussian_NB", GaussianNB()],#Pb with sparse matrix
      ["OneVsRest-Linear", OneVsRestClassifier(LinearSVC(random_state=0))],
-     ["Svm-C1-linear", svm.SVC(kernel='linear')],#OK but worse tha OVR
+#     ["Svm-C1-linear", svm.SVC(kernel='linear')],#OK but worse tha OVR
 #     ["svm-C-1-poly", svm.SVC(kernel='poly')],#Bad
 #     ["svm-C-1-rbf", svm.SVC(kernel='rbf')],#Slow
      ]
