@@ -13,7 +13,8 @@ from sklearn import svm
 from sklearn.multiclass import OneVsRestClassifier
 from sklearn.svm import LinearSVC
 from sklearn.model_selection import StratifiedKFold
-
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.naive_bayes import GaussianNB
 from scipy import sparse
 
 class process_data():
@@ -62,16 +63,18 @@ class process_data():
 
   def print_status(self):
       print "\n  Train set size :\t %s"%str(self.NbTrain)
-      print "    Classes :",self.stats
-      print("NB motifs : %i"%len(self.motifsOccurences))
+      print "  Classes :",self.stats
+      print("  NB motifs : %i"%len(self.motifsOccurences))
       if o.test=="":
-        print "\nTraining data : %s"%self.train_path
+        print "\n  Training data : %s"%self.train_path
       else:
         print "  Test set size :\t %s"%str(self.NbTotal-self.NbTrain)
-        print "\nTest data : %s"%o.test
+        print "\n  Test data : %s"%o.test
 
   def get_classifiers(self):
     liste_classif=[
+     ["Multinomial_NB",MultinomialNB()],
+     ["Gaussian_NB", GaussianNB()],
      ["OneVsRest-Linear", OneVsRestClassifier(LinearSVC(random_state=0))],
      ["Svm-C1-linear", svm.SVC(kernel='linear')],#OK but worse tha OVR
 #     ["svm-C-1-poly", svm.SVC(kernel='poly')],#Bad
