@@ -66,6 +66,7 @@ def get_scores(ref, pred, has_date, verbose):
   d_classes = init_data_struct(classes_names)
   missing = []
   eval_dates = {"dist":0, "dist_pond":0, "sim_gauss":0}
+  dic_errors = {}
   for ID, classe in ref.items():
     if ID not in pred:
       missing.append(ID)
@@ -74,6 +75,9 @@ def get_scores(ref, pred, has_date, verbose):
       d_classes[classe]["TP"]+=1
       eval_dates["sim_gauss"]+=1/float(len(pred))
     else:
+      error = "%s->%s"%(classe, pred[ID])
+      dic_errors.setdefault(error, 0)
+      dic_errors[error]+=1
       d_classes[classe]["FN"]+=1
       d_classes[pred[ID]]["FP"]+=1
       if has_date==True:
@@ -83,6 +87,9 @@ def get_scores(ref, pred, has_date, verbose):
         eval_dates["dist_pond"]+=ecart_abs*ecart_abs/len(pred)
         sim_gauss = (2.72818**(-(3.1415/10)*ecart_abs*ecart_abs))
         eval_dates["sim_gauss"]+=sim_gauss/len(pred)
+  if verbose==True:
+    LL = [[NB, error] for error, NB in dic_errors.items()]
+    print(sorted(LL))
   scores = compute_results(d_classes, has_date,verbose)
   if has_date:
     print(eval_dates)
@@ -103,7 +110,7 @@ ref = parse_file(sys.argv[1])
 dic_pyplot = {}
 D={}
 has_date = False#for adapting to regression cases
-verbose = False
+verbose = True
 
 for result_file in liste_results:
   print("\n Processing %s"%result_file[-80:])
